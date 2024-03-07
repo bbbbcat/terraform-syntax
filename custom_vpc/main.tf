@@ -26,14 +26,6 @@ resource "aws_subnet" "Hangramit_private_subnet_1" {
   }
 }
 
-resource "aws_nat_gateway" "private_nat_gw" {
-  connectivity_type = "private"
-  subnet_id         = aws_subnet.Public_subnet_1.id
-  tags = {
-    Name = "hangramit_nat_gw_${var.env}"
-  }
-}
-
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.default.id
   tags = {
