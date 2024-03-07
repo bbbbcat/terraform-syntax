@@ -29,3 +29,15 @@ resource "aws_subnet" "Public_subnet_1" {
     Name = "Hangramit_public_subnet_1"
   }
 }
+# resource "aws_subnet" "Hangramit_private_subnet_1" {
+#   vpc_id     = aws_vpc.default.id
+#   cidr_block = "10.0.100.0/24"
+
+#   tags = {
+#     Name = "Hangramit_private_subnet_1"
+#   }
+# }
+
+data "aws_subnet" "private_subnet_1" {
+  id = "subnet-0b1919704ec1ec558"
+}
