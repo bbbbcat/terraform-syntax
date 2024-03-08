@@ -6,10 +6,10 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "tf-backend-02-20240308"
-    key    = "terraform.tfstate"
-    region = "us-west-2"
-    # dynamodb_table = "terraform-lock"
+    bucket         = "tf-backend-02-20240308"
+    key            = "terraform.tfstate"
+    region         = "us-west-2"
+    dynamodb_table = "terraform-lock"
   }
 }
 
@@ -55,5 +55,15 @@ resource "aws_s3_bucket_versioning" "tf_backend_versioning" {
   bucket = aws_s3_bucket.tf_backend.id
   versioning_configuration {
     status = "Enabled"
+  }
+}
+
+resource "aws_dynamodb_table" "tf_backend_dynamodb_table" {
+  name         = "terraform-lock"
+  hash_key     = "LockID"
+  billing_mode = "PAY_PER_REQUEST"
+  attribute {
+    name = "LockID"
+    type = "S"
   }
 }
