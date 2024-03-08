@@ -68,11 +68,37 @@ resource "aws_s3_bucket_versioning" "tf_backend_versioning" {
 #   }
 # }
 
-resource "aws_eip" "eip_test" {
-  provisioner "local-exec" {
-    command = "echo ${aws_eip.eip_test.public_ip}"
-  }
+# resource "aws_eip" "eip_test" {
+# provisioner "local-exec" {
+#   command = "echo ${aws_eip.eip_test.public_ip}"
+# }
+# tags = {
+#     Name = "Test"
+#   }
+# }
+
+resource "aws_instance" "web-ec2" {
+  ami           = "ami-08f7912c15ca96832"
+  instance_type = "t2.micro"
+  key_name      = "Han-02"
   tags = {
-    Name = "Test"
+    Name = "my-02-web"
   }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt update",
+      "sudo apt -y install nginx",
+      "sudo systemctl start nginx"
+    ]
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = file("Han-02.pem")
+      host        = self.public_ip
+    }
+  }
+  provisioner "local-exec" {
+    command = "echo ${self.public_ip}"
+  }
+
 }
