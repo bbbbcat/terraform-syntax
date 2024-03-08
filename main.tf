@@ -34,6 +34,7 @@ resource "aws_s3_bucket" "tf_backend" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "tf_backend_ownership" {
+  count  = terraform.workspace == "default" ? 1 : 0
   bucket = aws_s3_bucket.tf_backend[0].id
   rule {
     object_ownership = "BucketOwnerPreferred"
@@ -49,6 +50,7 @@ resource "aws_s3_bucket_acl" "tf_backend_acl" {
 }
 
 resource "aws_s3_bucket_versioning" "tf_backend_versioning" {
+  count  = terraform.workspace == "default" ? 1 : 0
   bucket = aws_s3_bucket.tf_backend[0].id
   versioning_configuration {
     status = "Enabled"
