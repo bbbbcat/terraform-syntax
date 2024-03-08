@@ -19,18 +19,14 @@ provider "aws" {
 }
 
 
-variable "envs" {
-  type    = list(string)
-  default = ["dev", "prd", ""]
-}
 
-module "vpc_list" {
-  for_each = toset([for s in var.envs : s if s != ""])
-  source   = "./custom_vpc"
-  env      = each.key
+module "main_vpc" {
+  source = "./custom_vpc"
+  env    = terraform.workspace
 }
 
 resource "aws_s3_bucket" "tf_backend" {
+  count  = terraform.workspace == "default" ? 1 : 0
   bucket = "tf-backend-02-20240308"
   tags = {
     Name = "tf_backend"
@@ -38,67 +34,23 @@ resource "aws_s3_bucket" "tf_backend" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "tf_backend_ownership" {
-  bucket = aws_s3_bucket.tf_backend.id
+  bucket = aws_s3_bucket.tf_backend[0].id
   rule {
     object_ownership = "BucketOwnerPreferred"
   }
 }
 
 resource "aws_s3_bucket_acl" "tf_backend_acl" {
+  count      = terraform.workspace == "default" ? 1 : 0
   depends_on = [aws_s3_bucket_ownership_controls.tf_backend_ownership]
 
-  bucket = aws_s3_bucket.tf_backend.id
+  bucket = aws_s3_bucket.tf_backend[0].id
   acl    = "private"
 }
 
 resource "aws_s3_bucket_versioning" "tf_backend_versioning" {
-  bucket = aws_s3_bucket.tf_backend.id
+  bucket = aws_s3_bucket.tf_backend[0].id
   versioning_configuration {
     status = "Enabled"
   }
-}
-
-# resource "aws_dynamodb_table" "tf_backend_dynamodb_table" {
-#   name         = "terraform-lock"
-#   hash_key     = "LockID"
-#   billing_mode = "PAY_PER_REQUEST"
-#   attribute {
-#     name = "LockID"
-#     type = "S"
-#   }
-# }
-
-# resource "aws_eip" "eip_test" {
-# provisioner "local-exec" {
-#   command = "echo ${aws_eip.eip_test.public_ip}"
-# }
-# tags = {
-#     Name = "Test"
-#   }
-# }
-
-resource "aws_instance" "web-ec2" {
-  ami           = "ami-08f7912c15ca96832"
-  instance_type = "t2.micro"
-  key_name      = "Han-02"
-  tags = {
-    Name = "my-02-web"
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "sudo apt update",
-      "sudo apt -y install nginx",
-      "sudo systemctl start nginx"
-    ]
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file("Han-02.pem")
-      host        = self.public_ip
-    }
-  }
-  provisioner "local-exec" {
-    command = "echo ${self.public_ip}"
-  }
-
 }
