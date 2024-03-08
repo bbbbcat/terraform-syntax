@@ -69,6 +69,9 @@ resource "aws_s3_bucket_versioning" "tf_backend_versioning" {
 # }
 
 resource "aws_eip" "eip_test" {
+  provisioner "local-exec" {
+    command = "echo ${aws_eip.eip_test.public_ip}"
+  }
   tags = {
     Name = "Test"
   }
