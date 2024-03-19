@@ -1,0 +1,122 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "5.39.1"
+    }
+  }
+}
+provider "aws" {
+  region = "us-west-2"
+}
+resource "aws_vpc" "g1-vpc-01" {
+  cidr_block = "10.0.0.0/16"
+}
+resource "aws_subnet" "g1-pub-sub-01" {
+  vpc_id     = aws_vpc.g1-vpc-01.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "g1-pub-sub-01"
+  }
+}
+resource "aws_subnet" "g1-pri-dev-sub-01" {
+  vpc_id     = aws_vpc.g1-vpc-01.id
+  cidr_block = "10.0.10.0/24"
+
+  tags = {
+    Name = "g1-pri-dev-sub-01"
+  }
+}
+resource "aws_subnet" "g1-pri-dev-sub-02" {
+  vpc_id     = aws_vpc.g1-vpc-01.id
+  cidr_block = "10.0.30.0/24"
+
+  tags = {
+    Name = "g1-pri-dev-sub-02"
+  }
+}
+resource "aws_subnet" "g1-pri-db-sub-01" {
+  vpc_id     = aws_vpc.g1-vpc-01.id
+  cidr_block = "10.0.20.0/24"
+
+  tags = {
+    Name = "g1-pri-db-sub-01"
+  }
+}
+resource "aws_instance" "g1-bastion-01" {
+  ami           = "ami-0c7843ce70e666e51"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "g1-bastion-01"
+  }
+}
+resource "aws_eip" "g1-dev-eip-01" {
+  instance = aws_instance.g1-bastion-01.id
+  domain   = "vpc"
+}
+resource "aws_internet_gateway" "g1-pub-igw-01" {
+  vpc_id = aws_vpc.g1-vpc-01.id
+
+  tags = {
+    Name = "g1-pub-igw-01"
+  }
+}
+resource "aws_nat_gateway" "g1-dev-nat-01" {
+  allocation_id = aws_eip.g1-dev-eip-01.id
+  subnet_id     = aws_subnet.g1-pub-sub-01.id
+
+  tags = {
+    Name = "g1-dev-nat-01"
+  }
+
+  depends_on = [aws_internet_gateway.g1-pub-igw-01]
+}
+
+resource "aws_route_table" "g1-pub-rt-01" {
+  vpc_id = aws_vpc.g1-vpc-01.id
+
+  route {
+    cidr_block = "10.0.1.0/24"
+    gateway_id = aws_internet_gateway.g1-pub-igw-01.id
+  }
+
+  tags = {
+    Name = "g1-pub-rt-01"
+  }
+}
+#보안그룹 예제
+resource "aws_security_group" "g1-f1-sg-01" {
+  name   = "g1-f1-sg-01"
+  vpc_id = aws_vpc.g1-vpc-01.id
+
+  tags = {
+    Name = "g1-f1-sg-01"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "g1-f1-sg-01_ipv4" {
+  security_group_id = aws_security_group.g1-f1-sg-01.id
+  cidr_ipv4         = aws_vpc.g1-vpc-01.cidr_block
+  from_port         = 22
+  ip_protocol       = "ssh"
+  to_port           = 22
+}
+
+resource "aws_vpc_security_group_egress_rule" "g1-f1-sg-01_ipv4" {
+  security_group_id = aws_security_group.g1-f1-sg-01.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
+resource "aws_instance" "g1-ans1-01" {
+  ami             = "ami-0c7843ce70e666e51"
+  instance_type   = "t2.micro"
+  subnet_id       = aws_subnet.g1-pri-dev-sub-01.id
+  security_groups = [aws_security_group.g1-f1-sg-01.name]
+
+  tags = {
+    Name = "g1-ans1-01"
+  }
+}
